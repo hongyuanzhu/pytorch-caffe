@@ -13,6 +13,10 @@ train caffe models on pytorch
 # Usage
 python train.py --solver=examples/mnist/lenet_solver.prototxt 
 
+# Notes
+- Produce caffe_pb2.py
+  - protoc --python_out=./ caffe.proto
+  - pip install protobuf
 # Reference
 1. [python读取caffemodel文件](http://www.cnblogs.com/zjutzz/p/6185452.html?from=singlemessage&isappinstalled=0)
 

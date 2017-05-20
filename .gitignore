@@ -1,0 +1,4 @@
+*.pyc
+caffe_pb2.py
+data/
+ 

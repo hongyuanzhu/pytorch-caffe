@@ -54,6 +54,9 @@ test_loader = torch.utils.data.DataLoader(
     batch_size=batch_size, shuffle=True, **kwargs)
 
 model = CaffeNet(protofile)
+if args.weights:
+    model.load_weights(args.weights)
+
 model.print_network()
 
 if args.gpu:

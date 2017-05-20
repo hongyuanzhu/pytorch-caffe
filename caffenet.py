@@ -13,6 +13,8 @@ class FCView(nn.Module):
         nB = x.data.size(0)
         x = x.view(nB,-1)
         return x
+    def __repr__(self):
+        return 'view(nB, -1)'
 
 class CaffeNet(nn.Module):
     def __init__(self, protofile):
@@ -39,7 +41,7 @@ class CaffeNet(nn.Module):
         return blobs.values()[len(blobs)-1]
 
     def print_network(self):
-        print(self.models)
+        print(self.modelList)
 
     def create_network(self, net_info):
         models = OrderedDict()
@@ -101,6 +103,18 @@ class CaffeNet(nn.Module):
             elif ltype == 'SoftmaxWithLoss':
                 loss = nn.CrossEntropyLoss()
         return models, loss
+
+    def load_weights(self, weightfile):
+        try:
+            import caffe_pb2
+        except ImportError:
+            raise ImportError('Please produce caffe_pb2.py: protoc --python_out=./ caffe.proto')
+
+    def save_weights(self, weightfile): 
+        try:
+            import caffe_pb2
+        except ImportError:
+            raise ImportError('Please produce caffe_pb2.py: protoc --python_out=./ caffe.proto')
 
 if __name__ == '__main__':
     import sys
