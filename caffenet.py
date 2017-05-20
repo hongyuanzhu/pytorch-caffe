@@ -1,86 +1,115 @@
 import numpy as np
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from collections import OrderedDict
 from cfg import parse_prototxt
 
-class CaffeConvolution(nn.Module):
-    def __init__(self, filters,kernel_size, stride, pad, group):
-        super(CaffeConvolution, self).__init__()
-        self.filters = filters
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.pad = pad
-        self.group = group
-    def forward(self, x):
-        in_filters = x.data.size(1)
-        x = nn.Conv2d(in_filters, self.filters, self.kernel_size, self.stride, self.pad,groups=self.group)
-        return x
-    def __repr__(self):
-        return 'Convolution(%d, kernel_size=(%d, %d), stride=(%d, %d), padding=(%d, %d)' % (
-                 self.filters, self.kernel_size, self.kernel_size,
-                 self.stride, self.stride, self.pad, self.pad)
-
-
-class CaffeFC(nn.Module):
-    def __init__(self, out_channels):
-        super(CaffeFC, self).__init__()
-        self.out_channels = out_channels
+class FCView(nn.Module):
+    def __init__(self):
+        super(FCView, self).__init__()
 
     def forward(self, x):
-        if x.data.dim() == 4:
-            x = x.view(nB,-1)
-        in_channels = x.data.size(1)
-        x = nn.Linear(in_channels, out_channels)
+        nB = x.data.size(0)
+        x = x.view(nB,-1)
         return x
-    def __repr__(self):
-        return 'InnerProduct(%d)' % (self.out_channels)
 
 class CaffeNet(nn.Module):
     def __init__(self, protofile):
         super(CaffeNet, self).__init__()
         self.net_info = parse_prototxt(protofile)
-        self.models = self.create_network(self.net_info)
+        self.models, self.loss = self.create_network(self.net_info)
+        self.models = nn.Sequential(self.models)
 
+    def forward(self, data):
+        return self.models(data)
+
+        blobs = OrderedDict()
+        blobs['data'] = data
+        
+        for layer in self.net_info['layers']:
+            name = layer['name']
+            ltype = layer['type']
+            if ltype == 'Data' or ltype == 'Accuracy' or ltype == 'SoftmaxWithLoss':
+                continue
+            tname = layer['top']
+            bname = layer['bottom']
+            bottom_data = blobs[bname]
+            print(name, bottom_data)
+            top_data = self.models[name](bottom_data)
+            blobs[tname] = top_data
+
+        return blobs[len(blobs.keys())-1]
 
     def print_network(self):
         print(self.models)
 
     def create_network(self, net_info):
-        models = nn.Sequential()
+        models = OrderedDict()
+        blob_channels = dict()
+        blob_width = dict()
+        blob_height = dict()
 
-        for layer in net_info['layers']:
-            name = layer['name']
-            name = '%-6s' % (name)
+        blob_channels['data'] = 1
+        blob_width['data'] = 28
+        blob_height['data'] = 28
+
+        for lname, layer in net_info['layers'].items():
             ltype = layer['type']
             if ltype == 'Data':
                 continue
-            elif ltype == 'Convolution':
+            bname = layer['bottom']
+            tname = layer['top']
+            if ltype == 'Convolution':
                 convolution_param = layer['convolution_param']
-                filters = int(convolution_param['num_output'])
+                channels = blob_channels[bname]
+                out_filters = int(convolution_param['num_output'])
                 kernel_size = int(convolution_param['kernel_size'])
                 stride = int(convolution_param['stride']) if convolution_param.has_key('stride') else 1
                 pad = int(convolution_param['pad']) if convolution_param.has_key('pad') else 0
                 group = int(convolution_param['group']) if convolution_param.has_key('group') else 1
-                models.add_module(name, CaffeConvolution(filters, kernel_size, stride,pad,group))
+                models[lname] = nn.Conv2d(channels, out_filters, kernel_size, stride,pad,group)
+                blob_channels[tname] = out_filters
+                blob_width[tname] = (blob_width[bname] + 2*pad - kernel_size)/stride + 1
+                blob_height[tname] = (blob_height[bname] + 2*pad - kernel_size)/stride + 1
             elif ltype == 'ReLU':
-                bottom = layer['bottom']
-                top = layer['top']
-                inplace = (bottom == top)
-                models.add_module(name, nn.ReLU(inplace=inplace))
+                inplace = (bname == tname)
+                models[lname] = nn.ReLU(inplace=inplace)
+                blob_channels[tname] = blob_channels[bname]
+                blob_width[tname] = blob_width[bname]
+                blob_height[tname] = blob_height[bname]
             elif ltype == 'Pooling':
                 kernel_size = int(layer['pooling_param']['kernel_size'])
                 stride = int(layer['pooling_param']['stride'])
-                models.add_module(name, nn.MaxPool2d(kernel_size, stride))
+                models[lname] = nn.MaxPool2d(kernel_size, stride)
+                blob_channels[tname] = blob_channels[bname]
+                blob_width[tname] = blob_width[bname]/stride
+                blob_height[tname] = blob_height[bname]/stride
             elif ltype == 'InnerProduct':
                 filters = int(layer['inner_product_param']['num_output'])
-                models.add_module(name, CaffeFC(filters))
+                if blob_width[bname] != 1 or blob_height[bname] != 1:
+                    channels = blob_channels[bname] * blob_width[bname] * blob_height[bname]
+                    models[lname] = nn.Sequential(FCView(), nn.Linear(channels, filters))
+                else:
+                    channels = blob_channels[bname]
+                    models[lname] = nn.Linear(channels, filters)
+                blob_channels[tname] = filters
+                blob_width[tname] = 1
+                blob_height[tname] = 1
             elif ltype == 'Softmax':
-                models.add_module(name, nn.Softmax())
-        return models
+                models[lname] = nn.Softmax()
+                blob_channels[tname] = blob_channels[bname]
+                blob_width[tname] = 1
+                blob_height[tname] = 1
+            elif ltype == 'SoftmaxWithLoss':
+                loss = nn.CrossEntropyLoss()
+        return models, loss
 
 if __name__ == '__main__':
     import sys
+    from torch.autograd import Variable
     protofile = sys.argv[1]
-    print(protofile)
     net = CaffeNet(protofile)
     net.print_network()
+    for param in net.parameters():
+        print(param)

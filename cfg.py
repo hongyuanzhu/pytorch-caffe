@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 def parse_prototxt(protofile):
     def line_type(line):
         if line.find(':') >= 0:
@@ -32,7 +34,7 @@ def parse_prototxt(protofile):
 
     fp = open(protofile, 'r')
     props = dict()
-    layers = []
+    layers = OrderedDict()
     line = fp.readline()
     while line != '':
         line = line.strip().split('#')[0]
@@ -49,7 +51,7 @@ def parse_prototxt(protofile):
             key = line.split('{')[0].strip()
             if key == 'layer':
                 layer = parse_block(fp)
-                layers.append(layer)
+                layers[layer['name']] = layer
             else:
                 props[key] = parse_block(fp)
         line = fp.readline()
