@@ -30,7 +30,10 @@ batch_size    = 64
 num_workers   = 1
 learning_rate = 0.01
 momentum      = 0.9
+weight_decay  = 1e-4
 log_interval  = 20
+start_epoch   = 0
+end_epoch     = 100
 
 torch.manual_seed(int(time.time()))
 if args.gpu:
@@ -54,16 +57,20 @@ test_loader = torch.utils.data.DataLoader(
     batch_size=batch_size, shuffle=True, **kwargs)
 
 model = CaffeNet(protofile)
-if args.weights:
-    model.load_weights(args.weights)
-
 model.print_network()
 
 if args.gpu:
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     model = torch.nn.DataParallel(model).cuda()
 
-optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
+optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=weight_decay)
+
+if args.weights:
+    state = torch.load(args.weights)
+    start_epoch = state['epoch']+1
+    model.load_state_dict(state['state_dict'])
+    optimizer.load_state_dict(state['optimizer'])
+    print('loaded state %s' % (args.weights))
 
 def train(epoch):
     model.train()
@@ -80,6 +87,13 @@ def train(epoch):
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss.data[0]))
+
+    savename = '%06d.pt.tar' % (epoch)
+    print('save state %s' % (savename))
+    state = {'epoch': epoch,
+            'state_dict': model.state_dict(),
+            'optimizer': optimizer.state_dict()}
+    torch.save(state, savename)
 
 def test(epoch):
     model.eval()
@@ -101,6 +115,9 @@ def test(epoch):
         100. * correct / len(test_loader.dataset)))
 
 
-for epoch in range(0, 100):
+if args.weights:
+    test(start_epoch)
+
+for epoch in range(start_epoch, end_epoch):
     train(epoch)
     test(epoch)

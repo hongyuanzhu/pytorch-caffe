@@ -104,18 +104,6 @@ class CaffeNet(nn.Module):
                 loss = nn.CrossEntropyLoss()
         return models, loss
 
-    def load_weights(self, weightfile):
-        try:
-            import caffe_pb2
-        except ImportError:
-            raise ImportError('Please produce caffe_pb2.py: protoc --python_out=./ caffe.proto')
-
-    def save_weights(self, weightfile): 
-        try:
-            import caffe_pb2
-        except ImportError:
-            raise ImportError('Please produce caffe_pb2.py: protoc --python_out=./ caffe.proto')
-
 if __name__ == '__main__':
     import sys
     from torch.autograd import Variable
