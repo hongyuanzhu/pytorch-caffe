@@ -3,8 +3,6 @@ import argparse
 import os
 import time
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.autograd import Variable
@@ -88,7 +86,7 @@ def train(epoch):
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss.data[0]))
 
-    savename = '%06d.pt.tar' % (epoch)
+    savename = '%06d.pth.tar' % (epoch)
     print('save state %s' % (savename))
     state = {'epoch': epoch,
             'state_dict': model.state_dict(),

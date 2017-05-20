@@ -8,9 +8,12 @@ train caffe models on pytorch
 - [x] create network
 - [x] train mnist
 - [x] load/save weights
+- [ ] test time consuming
 
 # Usage
 python train.py --solver=examples/mnist/lenet_solver.prototxt 
+python train.py --solver=examples/mnist/lenet_solver.prototxt --weights=000000.pth.tar
+python caffe_time.py --model=test.prototxt
 
 # Notes
 - Produce caffe_pb2.py
