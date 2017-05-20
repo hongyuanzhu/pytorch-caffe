@@ -7,8 +7,7 @@ train caffe models on pytorch
 - [x] parse solver
 - [x] create network
 - [x] train mnist
-- [ ] load caffemodel
-- [ ] save caffemodel
+- [x] load/save weights
 
 # Usage
 python train.py --solver=examples/mnist/lenet_solver.prototxt 
