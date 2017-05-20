@@ -12,3 +12,7 @@ train caffe models on pytorch
 
 # Usage
 python train.py --solver=examples/mnist/lenet_solver.prototxt 
+
+# Reference
+1. [python读取caffemodel文件](http://www.cnblogs.com/zjutzz/p/6185452.html?from=singlemessage&isappinstalled=0)
+
