@@ -8,7 +8,8 @@ train caffe models on pytorch
 - [x] create network
 - [x] train mnist
 - [x] load/save weights
-- [ ] test time consuming
+- [x] test time consuming on cpu
+- [ ] test time consuming on gpu
 
 # Usage
 - python main.py train --solver=examples/mnist/lenet_solver.prototxt 
