@@ -19,27 +19,24 @@ class CaffeNet(nn.Module):
         super(CaffeNet, self).__init__()
         self.net_info = parse_prototxt(protofile)
         self.models, self.loss = self.create_network(self.net_info)
-        self.models = nn.Sequential(self.models)
+        self.modelList = nn.ModuleList()
+        for name,model in self.models.items():
+            self.modelList.append(model)
 
     def forward(self, data):
-        return self.models(data)
-
         blobs = OrderedDict()
         blobs['data'] = data
         
-        for layer in self.net_info['layers']:
-            name = layer['name']
+        for lname, layer in self.net_info['layers'].items():
             ltype = layer['type']
             if ltype == 'Data' or ltype == 'Accuracy' or ltype == 'SoftmaxWithLoss':
                 continue
             tname = layer['top']
             bname = layer['bottom']
-            bottom_data = blobs[bname]
-            print(name, bottom_data)
-            top_data = self.models[name](bottom_data)
-            blobs[tname] = top_data
-
-        return blobs[len(blobs.keys())-1]
+            bdata = blobs[bname]
+            tdata = self.models[lname](bdata)
+            blobs[tname] = tdata
+        return blobs.values()[len(blobs)-1]
 
     def print_network(self):
         print(self.models)
