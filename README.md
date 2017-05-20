@@ -11,8 +11,8 @@ train caffe models on pytorch
 - [ ] test time consuming
 
 # Usage
-python train.py --solver=examples/mnist/lenet_solver.prototxt 
-python train.py --solver=examples/mnist/lenet_solver.prototxt --weights=000000.pth.tar
+python main.py train --solver=examples/mnist/lenet_solver.prototxt 
+python main.py train --solver=examples/mnist/lenet_solver.prototxt --weights=000000.pth.tar
 python caffe_time.py --model=test.prototxt
 
 # Notes
