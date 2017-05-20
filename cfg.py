@@ -58,6 +58,7 @@ def parse_prototxt(protofile):
         net_info = dict()
         net_info['props'] = props
         net_info['layers'] = layers
+        return net_info
     else:
         return props
 
