@@ -20,8 +20,29 @@ parser.add_argument('--snapshot', help='the snapshot solver state to resume trai
 parser.add_argument('--weights', help='the pretrained weight')
 
 args = parser.parse_args()
+if args.mode == 'time':
 
-if args.mode == 'train':
+    protofile  = args.model
+    net_info   = parse_prototxt(protofile)
+    model      = CaffeNet(protofile)
+    batch_size = 64
+
+    model.print_network()
+    model.eval()
+
+    niters = 50
+    total = 0
+    for i in range(niters):
+        x = torch.rand(batch_size, 1, 28, 28)
+        x = Variable(x)
+        t0 = time.time()
+        output = model(x)
+        t1 = time.time()
+        print('iteration %d: %fs' %(i, t1-t0))
+        total = total + (t1-t0)
+    print('total time %fs, %fs per batch, %fs per sample' % (total, total/niters, total/(niters*batch_size)))
+    
+elif args.mode == 'train':
     solver        = parse_prototxt(args.solver)
     protofile     = solver['net']
     net_info      = parse_prototxt(protofile)
