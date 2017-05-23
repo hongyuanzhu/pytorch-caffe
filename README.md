@@ -10,6 +10,7 @@ train caffe models on pytorch
 - [x] load/save weights
 - [x] test time consuming on cpu
 - [ ] test time consuming on gpu
+- [ ] evaluate Resnet50 on imagenet data
 
 # Usage
 - python main.py train --solver=examples/mnist/lenet_solver.prototxt 
