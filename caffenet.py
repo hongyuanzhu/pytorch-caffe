@@ -84,9 +84,8 @@ class CaffeNet(nn.Module):
         super(CaffeNet, self).__init__()
         self.net_info = parse_prototxt(protofile)
         self.models, self.loss = self.create_network(self.net_info)
-        self.modelList = nn.ModuleList()
         for name,model in self.models.items():
-            self.modelList.append(model)
+            self.add_module(name, model)
 
     def forward(self, data):
         blobs = OrderedDict()
@@ -99,12 +98,12 @@ class CaffeNet(nn.Module):
             tname = layer['top']
             bname = layer['bottom']
             bdata = blobs[bname]
-            tdata = self.models[lname](bdata)
+            tdata = self._modules[lname](bdata)
             blobs[tname] = tdata
         return blobs.values()[len(blobs)-1]
 
     def print_network(self):
-        print(self.modelList)
+        print(self)
 
     def create_network(self, net_info):
         models = OrderedDict()

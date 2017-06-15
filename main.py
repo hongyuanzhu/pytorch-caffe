@@ -4,6 +4,7 @@ import os
 import time
 import torch
 import torch.optim as optim
+import torch.nn as nn
 from torchvision import datasets, transforms
 from torch.autograd import Variable
 from caffenet import CaffeNet, parse_prototxt
@@ -78,6 +79,7 @@ elif args.mode == 'train':
         batch_size=batch_size, shuffle=True, **kwargs)
     
     model = CaffeNet(protofile)
+    model_loss = nn.CrossEntropyLoss()
     model.print_network()
     
     if args.gpu:
@@ -101,7 +103,7 @@ elif args.mode == 'train':
             data, target = Variable(data), Variable(target)
             optimizer.zero_grad()
             output = model(data)
-            loss = model.loss(output, target)
+            loss = model_loss(output, target)
             loss.backward()
             optimizer.step()
             if batch_idx % log_interval == 0:
@@ -125,7 +127,7 @@ elif args.mode == 'train':
                 data, target = data.cuda(), target.cuda()
             data, target = Variable(data, volatile=True), Variable(target)
             output = model(data)
-            test_loss += model.loss(output, target).data[0]
+            test_loss += model_loss(output, target).data[0]
             pred = output.data.max(1)[1] # get the index of the max log-probability
             correct += pred.eq(target.data).cpu().sum()
     
